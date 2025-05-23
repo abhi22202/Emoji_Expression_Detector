@@ -1,4 +1,3 @@
-// GraphicOverlay.kt
 package com.example.myfaceapplication.ui.overlay
 
 import android.content.Context
