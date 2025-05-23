@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.example.myfaceapplication.ui.theme.MyFaceApplicationTheme
 import com.example.myfaceapplication.util.Emotion
@@ -43,6 +45,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun FaceAppScreen() {
     val context = LocalContext.current
+    val cameraPermission = android.Manifest.permission.CAMERA
+
     var selectedImage by remember { mutableStateOf<Bitmap?>(null) }
     var emotionScores by remember { mutableStateOf<Map<Emotion, Float>?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -82,16 +86,16 @@ fun FaceAppScreen() {
         }
     }
 
-    fun createImageUri(): Uri {
-        val imageFile = File.createTempFile("face_capture_", ".jpg", context.cacheDir).apply {
-            createNewFile()
-            deleteOnExit()
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            val uri = createImageUri(context)
+            cameraImageUri = uri
+            cameraLauncher.launch(uri)
+        } else {
+            Toast.makeText(context, "Camera permission denied", Toast.LENGTH_SHORT).show()
         }
-        return FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.provider",
-            imageFile
-        )
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -119,7 +123,6 @@ fun FaceAppScreen() {
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
-
                     Text("Detected Emotions:", style = MaterialTheme.typography.titleMedium)
 
                     emotionScores!!.forEach { (emotion, score) ->
@@ -140,11 +143,21 @@ fun FaceAppScreen() {
                     Button(onClick = { galleryLauncher.launch("image/*") }) {
                         Text("Select from Gallery")
                     }
+
                     Spacer(modifier = Modifier.height(16.dp))
+
                     Button(onClick = {
-                        val uri = createImageUri()
-                        cameraImageUri = uri
-                        cameraLauncher.launch(uri)
+                        if (ContextCompat.checkSelfPermission(
+                                context,
+                                cameraPermission
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        ) {
+                            val uri = createImageUri(context)
+                            cameraImageUri = uri
+                            cameraLauncher.launch(uri)
+                        } else {
+                            permissionLauncher.launch(cameraPermission)
+                        }
                     }) {
                         Text("Take Photo")
                     }
@@ -152,6 +165,18 @@ fun FaceAppScreen() {
             }
         }
     }
+}
+
+fun createImageUri(context: Context): Uri {
+    val imageFile = File.createTempFile("face_capture_", ".jpg", context.cacheDir).apply {
+        createNewFile()
+        deleteOnExit()
+    }
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.provider",
+        imageFile
+    )
 }
 
 fun processImageFromUri(
