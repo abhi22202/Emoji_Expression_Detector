@@ -2,6 +2,6 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- This allows sharing files in context.cacheDir -->
     <cache-path
-        name="images"
+        name="cache"
         path="." />
 </paths>
