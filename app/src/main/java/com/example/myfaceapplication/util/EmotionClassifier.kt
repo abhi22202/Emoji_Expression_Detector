@@ -24,11 +24,16 @@ fun getEmotionProbabilities(face: Face): Map<Emotion, Float> {
     val leftEye = face.leftEyeOpenProbability ?: 0f
     val rightEye = face.rightEyeOpenProbability ?: 0f
 
-    return mapOf(
+    val rawScores = mapOf(
         Emotion.HAPPY to (smile + leftEye + rightEye) / 3f,
         Emotion.SAD to ((1 - smile) + (1 - leftEye) + (1 - rightEye)) / 3f,
         Emotion.SURPRISED to ((leftEye + rightEye) / 2f) * (1 - smile),
         Emotion.NEUTRAL to 1f - (smile + leftEye + rightEye) / 3f
     ).mapValues { (_, v) -> v.coerceIn(0f, 1f) }
+
+    val total = rawScores.values.sum().takeIf { it > 0 } ?: 1f
+
+    return rawScores.mapValues { (_, v) -> v / total }
 }
+
 
